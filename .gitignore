@@ -17,7 +17,7 @@
 *.hdf5
 *.out
 *.pyc
-
+*.txt
 *.png
 *.jpg
 *.jpeg
