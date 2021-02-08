@@ -3,6 +3,10 @@ from absl.flags import FLAGS
 import os
 import shutil
 import tensorflow as tf
+physical_devices = tf.config.experimental.list_physical_devices('GPU')
+if len(physical_devices) > 0:
+    tf.config.experimental.set_memory_growth(physical_devices[0], True)
+
 from core.yolov4 import YOLO, decode, compute_loss, decode_train
 from core.dataset import Dataset
 from core.config import cfg
@@ -11,14 +15,11 @@ from core import utils
 from core.utils import freeze_all, unfreeze_all
 
 flags.DEFINE_string('model', 'yolov4', 'yolov4, yolov3')
-flags.DEFINE_string('weights', './scripts/yolov4.weights', 'pretrained weights')
+flags.DEFINE_string('weights', './checkpoints/yolov4', 'pretrained weights')
 flags.DEFINE_boolean('tiny', False, 'yolo or yolo-tiny')
 
 def main(_argv):
-    physical_devices = tf.config.experimental.list_physical_devices('GPU')
-    if len(physical_devices) > 0:
-        tf.config.experimental.set_memory_growth(physical_devices[0], True)
-
+    print("Defining model and dataset")
     trainset = Dataset(FLAGS, is_training=True)
     testset = Dataset(FLAGS, is_training=False)
     logdir = "./data/log"
@@ -65,11 +66,12 @@ def main(_argv):
     if FLAGS.weights == None:
         print("Training from scratch")
     else:
+        print('Restoring weights from: %s ... ' % FLAGS.weights)
         if FLAGS.weights.split(".")[len(FLAGS.weights.split(".")) - 1] == "weights":
             utils.load_weights(model, FLAGS.weights, FLAGS.model, FLAGS.tiny)
         else:
             model.load_weights(FLAGS.weights)
-        print('Restoring weights from: %s ... ' % FLAGS.weights)
+        print('Weights restored')
 
 
     optimizer = tf.keras.optimizers.Adam()
@@ -137,14 +139,17 @@ def main(_argv):
                                                                prob_loss, total_loss))
 
     for epoch in range(first_stage_epochs + second_stage_epochs):
+        print(f"***************************** EPOCH: {epoch} *******************************")
         if epoch < first_stage_epochs:
             if not isfreeze:
+                print("======================== 1st STAGE ============================")
                 isfreeze = True
                 for name in freeze_layers:
                     freeze = model.get_layer(name)
                     freeze_all(freeze)
         elif epoch >= first_stage_epochs:
             if isfreeze:
+                print("======================== 2nd STAGE ============================")
                 isfreeze = False
                 for name in freeze_layers:
                     freeze = model.get_layer(name)
@@ -153,7 +158,7 @@ def main(_argv):
             train_step(image_data, target)
         for image_data, target in testset:
             test_step(image_data, target)
-        model.save_weights("./checkpoints/yolov4")
+        model.save_weights("./checkpoints/yolov4_uk")
 
 if __name__ == '__main__':
     try:

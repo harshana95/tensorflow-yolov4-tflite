@@ -1,0 +1,26 @@
+# Default ignored files
+/shelf/
+/workspace.xml
+
+*.weights
+
+**/.idea
+**/.vscode
+
+*.data*
+*.pb
+*.index
+
+**/__pycache__
+
+*.h5
+*.hdf5
+*.out
+*.pyc
+
+*.png
+*.jpg
+*.jpeg
+*.gif
+
+**/data/dataset/
